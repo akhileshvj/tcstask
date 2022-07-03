@@ -25,6 +25,11 @@ resource "aws_instance" "web" {
   tags = {
     Name = "HelloWorld"
   }
+  root_block_device {
+    volume_size           = "8"
+    volume_type           = "gp2"
+    delete_on_termination = true
+  }
 }
 
 
