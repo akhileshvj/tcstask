@@ -2,9 +2,9 @@ version: '3'
 services:
         jenkins:
                 container_name: jenkins
-                image: jenkins-terraform
+                image: jenkins-terr
                 build:
-                        context: jenkins-ansible
+                        context: jenkins-terraform
                 ports:
                         - "8080:8080"
                 volumes:
