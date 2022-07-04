@@ -1,33 +1,71 @@
-pipelineJob('job-name') {
+pipelineJob('Terraform Deploy') {
   definition {
     cps {
       script('''
-                pipeline {
-                      agent any
-                              tools {
-                                       terraform "Terraform1.0.0"
-                                     }
+pipeline {
+  agent any
+  tools {
+      terraform "Terraform1.0.0"
+  }
 
-                                    stages {
-                                            stage('Git Checkout') {
-                                                                    steps {
-                                                                              git credentialsId: 'git-login', url: 'https://github.com/akhileshvj/tcstask.git'
-                                                                           }
-                                                                  }
+  stages {
+    stage('Git Checkout') {
+      steps {
+        git url: 'https://github.com/akhileshvj/tcstask.git'
+      }
+    }
 
-                                            stage('Terraform Init') {
-                                                                    steps {
-                                                                               sh label: '', script: 'terraform init'
-                                                                          }
-                                                                    }
+    stage ("Enter AWS Creds") {
+      steps {
+        script {
+          env.AWS_ACCESS_KEY_ID = input message: 'Please enter the AWS Access key',
+                             parameters: [string(defaultValue: '',
+                                          description: '',
+                                          name: 'Access Key')]
+          env.AWS_SECRET_ACCESS_KEY = input message: 'Please enter the AWS Secret key',
+                             parameters: [password(defaultValue: '',
+                                          description: '',
+                                          name: 'Secret')]
+        }
+      }
+    }
+  
+    stage('Terraform Init') {
+      steps {
+        sh script: 'terraform init'
+      }
+    }
     
-                                            stage('Terraform apply') {
-                                                                    steps {
-                                                                              sh label: '', script: 'terraform apply --auto-approve'
-                                                                          }
-                                                                      }
-                                            }
-                          }
+    
+    stage('Terraform apply') {
+      steps {
+        sh script: 'terraform apply --auto-approve'
+      }
+    }
+    
+    stage('Approval for Destroy the resources') {
+      
+      steps {
+        script {
+          env.TAG_APPROVAL = input message: 'Approval to destroy if everything is ok?',
+              parameters: [choice(name: 'Terraform Destroy Command approval', choices: ["no", "yes"], description: 'Choose "yes" if you want to trigger a terraform destroy')]
+        }
+      }
+    }
+    
+    stage('Terraform Destroy') {
+    
+      when {
+        environment name: 'TAG_APPROVAL', value: 'yes'
+      }
+      steps {
+        sh label: '', script: 'terraform destroy --auto-approve'
+      }
+    }
+    
+  }
+}
+
     ''')   
     }
   }
